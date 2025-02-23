@@ -52,21 +52,49 @@
             color: white;
             cursor: pointer;
         }
+        .output-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            width: 100%;
+        }
+        .image-box {
+            border: 1px solid gray;
+            border-radius: 10px;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            max-width: 300px;
+        }
+        .image-box img {
+            width: 100%;
+            border-radius: 10px;
+        }
+        .button-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+        }
+        .data-button {
+            padding: 8px 15px;
+            border-radius: 10px;
+            border: 1px solid gray;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            cursor: pointer;
+        }
         .output {
             border: 1px solid gray;
             background: rgba(255, 255, 255, 0.1);
-            min-height: 150px;
-            max-height: 300px;
+            min-height: 30px;
+            max-height: 50px;
             width: 100%;
-            overflow-y: auto;
+            overflow-y: hidden;
             word-break: break-word;
-            padding: 10px;
-            text-align: left;
-            display: flex;
-            flex-direction: column;
-            align-items: flex-start;
-            justify-content: flex-start;
-            white-space: pre-wrap;
+            padding: 5px;
+            text-align: center;
+            display: none;
             border-radius: 10px;
         }
     </style>
@@ -76,15 +104,16 @@
         <h2>Level API Viewer</h2>
         <input type="text" id="urlInput" placeholder="Enter level URL...">
         <button onclick="fetchLevelData()">Get Level Data</button>
-        <div class="output" id="apiOutput">API response will appear here...</div>
+        <div class="output-container" id="outputContainer"></div>
     </div>
 
     <script>
+        let outputHistory = [];
         function fetchLevelData() {
             const input = document.getElementById('urlInput').value;
             const match = input.match(/\?level=([\w]+):(\d+)/);
             if (!match) {
-                document.getElementById('apiOutput').innerText = "Invalid URL format";
+                document.getElementById('outputContainer').innerText = "Invalid URL format";
                 return;
             }
             const levelId = `${match[1]}/${match[2]}`;
@@ -93,18 +122,55 @@
             fetch(apiUrl)
                 .then(response => response.json())
                 .then(data => {
-                    document.getElementById('apiOutput').innerHTML = formatData(data);
+                    displayData(data, levelId);
                 })
                 .catch(error => {
-                    document.getElementById('apiOutput').innerText = "Error fetching data";
+                    document.getElementById('outputContainer').innerText = "Error fetching data";
                     console.error(error);
                 });
         }
 
-        function formatData(data) {
-            return Object.entries(data)
-                .map(([key, value]) => `<strong>${key}:</strong> ${JSON.stringify(value, null, 2)}`)
-                .join('<br><br>');
+        function displayData(data, levelId) {
+            const outputContainer = document.getElementById('outputContainer');
+            outputContainer.innerHTML = '';
+            
+            const imageBox = document.createElement('div');
+            imageBox.className = 'image-box';
+            
+            const img = document.createElement('img');
+            img.src = `https://grab-images.slin.dev/level_${levelId.replace('/', '_')}_1_thumb.png`;
+            img.onerror = function() { this.style.display = 'none'; };
+            imageBox.appendChild(img);
+            outputContainer.appendChild(imageBox);
+            
+            const buttonContainer = document.createElement('div');
+            buttonContainer.className = 'button-container';
+            outputContainer.appendChild(buttonContainer);
+            
+            Object.entries(data).forEach(([key, value]) => {
+                const button = document.createElement('button');
+                button.className = 'data-button';
+                button.innerText = key;
+                button.onclick = () => toggleOutput(key, value);
+                buttonContainer.appendChild(button);
+                
+                const outputDiv = document.createElement('div');
+                outputDiv.className = 'output';
+                outputDiv.id = `output-${key}`;
+                outputDiv.innerHTML = `<strong>${key}</strong><br>${JSON.stringify(value)}`;
+                outputContainer.appendChild(outputDiv);
+            });
+        }
+
+        function toggleOutput(key, value) {
+            const outputDiv = document.getElementById(`output-${key}`);
+            outputDiv.style.display = 'block';
+            
+            outputHistory.push(outputDiv);
+            if (outputHistory.length > 6) {
+                const firstOutput = outputHistory.shift();
+                firstOutput.style.display = 'none';
+            }
         }
     </script>
 </body>
