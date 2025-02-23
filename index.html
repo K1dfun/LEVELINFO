@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Level API Viewer</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            background: #1a1a1a;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            text-align: center;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 25px;
+            border: 1px solid gray;
+            border-radius: 20px;
+            text-align: center;
+            width: 90%;
+            max-width: 500px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+        input, .output {
+            width: 100%;
+            padding: 12px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        input {
+            border: 1px solid gray;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+        }
+        button {
+            width: auto;
+            padding: 10px 20px;
+            border-radius: 10px;
+            border: 1px solid gray;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            cursor: pointer;
+        }
+        .output {
+            border: 1px solid gray;
+            background: rgba(255, 255, 255, 0.1);
+            min-height: 100px;
+            word-break: break-word;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Level API Viewer</h2>
+        <input type="text" id="urlInput" placeholder="Enter level URL...">
+        <button onclick="fetchLevelData()">Get Level Data</button>
+        <div class="output" id="apiOutput">API response will appear here...</div>
+    </div>
+
+    <script>
+        function fetchLevelData() {
+            const input = document.getElementById('urlInput').value;
+            const match = input.match(/\?level=([\w]+):(\d+)/);
+            if (!match) {
+                document.getElementById('apiOutput').innerText = "Invalid URL format";
+                return;
+            }
+            const levelId = `${match[1]}/${match[2]}`;
+            const apiUrl = `https://api.slin.dev/grab/v1/details/${levelId}`;
+            
+            fetch(apiUrl)
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('apiOutput').innerText = JSON.stringify(data, null, 2);
+                })
+                .catch(error => {
+                    document.getElementById('apiOutput').innerText = "Error fetching data";
+                    console.error(error);
+                });
+        }
+    </script>
+</body>
+</html>
