@@ -4,7 +4,7 @@
 1.0.2
 - Added Level Images
 - Boolean buttons are green (true) and red (false)
--	Boolean buttons are unclickable
+- Boolean buttons are unclickable
 -	Buttons brighten when clicked
 -	Auto-switches to placeholder if the image fails to load
 -	Improved button animations and error handling
