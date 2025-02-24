@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Level API Viewer</title>
+    <title>Advanced Level Information</title>
     <style>
         * {
             box-sizing: border-box;
@@ -13,28 +13,25 @@
             background: #1a1a1a;
             color: white;
             display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
             height: 100vh;
             margin: 0;
-            text-align: center;
+            padding: 20px;
         }
-        .container {
-            background: rgba(255, 255, 255, 0.1);
-            padding: 25px;
-            border: 1px solid gray;
-            border-radius: 20px;
-            text-align: center;
-            width: 90%;
-            max-width: 500px;
+        .left-container {
             display: flex;
             flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 15px;
+            gap: 20px;
+            width: 30%;
         }
-        input {
+        .box {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+            border: 1px solid gray;
+            text-align: center;
+        }
+        input, button {
             width: 100%;
             padding: 12px;
             border-radius: 10px;
@@ -44,47 +41,13 @@
             color: white;
         }
         button {
-            padding: 10px 20px;
-            border-radius: 10px;
-            border: 1px solid gray;
-            background: rgba(255, 255, 255, 0.3);
-            color: white;
             cursor: pointer;
             transition: background 0.2s, filter 0.2s;
+            box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3);
+            margin-top: 10px;
         }
         button:hover {
             background: rgba(255, 255, 255, 0.5);
-        }
-        .button-active {
-            filter: brightness(1.5);
-        }
-        .button-true {
-            background: rgba(0, 200, 0, 0.7);
-            border: 1px solid lime;
-            cursor: default;
-        }
-        .button-false {
-            background: rgba(200, 0, 0, 0.7);
-            border: 1px solid red;
-            cursor: default;
-        }
-        .output-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 15px;
-            width: 100%;
-        }
-        .image-box {
-            border: 1px solid gray;
-            border-radius: 10px;
-            padding: 10px;
-            background: rgba(255, 255, 255, 0.1);
-            max-width: 300px;
-        }
-        .image-box img {
-            width: 100%;
-            border-radius: 10px;
         }
         .button-container {
             display: flex;
@@ -92,115 +55,115 @@
             justify-content: center;
             gap: 10px;
         }
-        .output {
-            border: 1px solid gray;
+        .data-button {
+            border: 1px solid white;
+            padding: 10px 15px;
             background: rgba(255, 255, 255, 0.1);
-            min-height: 30px;
-            width: 100%;
-            overflow-y: auto;
-            word-wrap: break-word;
-            padding: 5px;
-            text-align: center;
-            display: none;
-            border-radius: 10px;
-            max-height: 120px;
+            cursor: pointer;
         }
-        .expand {
-            max-height: 300px !important;
+        .data-button:hover {
+            filter: brightness(1.5);
+            transform: scale(1.05);
+        }
+        .right-container {
+            width: 70%;
+            margin-left: 20px;
+            overflow-y: auto;
+        }
+        .output-box {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid gray;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 10px;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h2>Level API Viewer</h2>
-        <input type="text" id="urlInput" placeholder="Enter level URL...">
-        <button onclick="fetchLevelData()">Get Level Data</button>
-        <div class="output-container" id="outputContainer"></div>
+    <div class="left-container">
+        <div class="box" id="level-info-box">
+            <img id="level-image" src="Default_Image.png" style="width: 100%; border-radius: 10px;">
+            <input type="text" id="urlInput" placeholder="Enter level URL...">
+            <button onclick="fetchLevelData()">Get Level Data</button>
+        </div>
+        <div class="box" id="buttons-box" style="display: none;">
+            <div class="button-container" id="button-container"></div>
+        </div>
     </div>
-
+    <div class="right-container" id="output-container"></div>
+    
     <script>
         let outputHistory = [];
 
         function fetchLevelData() {
             const input = document.getElementById('urlInput').value.trim();
             const match = input.match(/\?level=([\w]+):(\d+)/);
-            const outputContainer = document.getElementById('outputContainer');
-
+            const buttonBox = document.getElementById('buttons-box');
+            const outputContainer = document.getElementById('output-container');
+            
             if (!match) {
-                outputContainer.innerText = "Invalid URL format";
+                outputContainer.innerHTML = "<div class='output-box'>Invalid URL format</div>";
                 return;
             }
 
             const levelId = `${match[1]}/${match[2]}`;
             const apiUrl = `https://api.slin.dev/grab/v1/details/${levelId}`;
-
+            
             fetch(apiUrl)
                 .then(response => response.json())
-                .then(data => displayData(data, levelId))
+                .then(data => {
+                    displayLevelImage(levelId);
+                    displayInitialData(data);
+                    displayButtons(data);
+                    buttonBox.style.display = 'block';
+                })
                 .catch(error => {
-                    outputContainer.innerText = "Error fetching data";
-                    console.error(error);
+                    outputContainer.innerHTML = `<div class='output-box' style='color:red;'>Error: ${error.message}</div>`;
                 });
         }
 
-        function displayData(data, levelId) {
-            const outputContainer = document.getElementById('outputContainer');
-            outputContainer.innerHTML = '';
-
-            // Image Handling
-            const imageBox = document.createElement('div');
-            imageBox.className = 'image-box';
-
-            const img = document.createElement('img');
+        function displayLevelImage(levelId) {
+            const img = document.getElementById('level-image');
             img.src = `https://grab-images.slin.dev/level_${levelId.replace('/', '_')}_1_thumb.png`;
             img.onerror = function () {
-                this.src = "Default_Image.png"; // Uses actual PNG file
+                this.src = "Default_Image.png";
             };
+        }
 
-            imageBox.appendChild(img);
-            outputContainer.appendChild(imageBox);
+        function displayInitialData(data) {
+            addOutputBox("Title", data.title);
+            addOutputBox("Creators", data.creators);
+            addOutputBox("Complexity", data.complexity);
+        }
 
-            const buttonContainer = document.createElement('div');
-            buttonContainer.className = 'button-container';
-            outputContainer.appendChild(buttonContainer);
+        function displayButtons(data) {
+            const buttonContainer = document.getElementById('button-container');
+            buttonContainer.innerHTML = '';
 
             Object.entries(data).forEach(([key, value]) => {
+                if (key === "title" || key === "creators" || key === "complexity") return;
+                
                 const button = document.createElement('button');
                 button.innerText = key;
-
-                if (typeof value === 'boolean') {
-                    button.className = value ? 'button-true' : 'button-false';
-                } else {
-                    button.className = 'data-button';
-                    button.onclick = () => toggleOutput(key, value);
-                }
-
+                button.className = 'data-button';
+                button.onclick = () => addOutputBox(key, value);
                 buttonContainer.appendChild(button);
-
-                if (typeof value !== 'boolean') {
-                    const outputDiv = document.createElement('div');
-                    outputDiv.className = 'output';
-                    outputDiv.id = `output-${key}`;
-                    outputDiv.innerHTML = `<strong>${key}</strong><br>${JSON.stringify(value, null, 2)}`;
-                    outputDiv.onclick = () => outputDiv.classList.toggle('expand');
-                    outputContainer.appendChild(outputDiv);
-                }
             });
         }
 
-        function toggleOutput(key, value) {
-            const outputDiv = document.getElementById(`output-${key}`);
-            outputDiv.style.display = 'block';
-
-            outputHistory.push(outputDiv);
+        function addOutputBox(key, value) {
+            const outputContainer = document.getElementById('output-container');
+            const outputBox = document.createElement('div');
+            outputBox.className = 'output-box';
+            outputBox.innerHTML = `<strong>${key}</strong><pre>${JSON.stringify(value, null, 2)}</pre>`;
+            outputContainer.appendChild(outputBox);
+            
+            outputHistory.push(outputBox);
+            
             if (outputHistory.length > 6) {
                 const firstOutput = outputHistory.shift();
-                firstOutput.style.display = 'none';
-            }
-
-            const button = document.querySelector(`button[data-key="${key}"]`);
-            if (button) {
-                button.classList.add('button-active');
+                outputContainer.removeChild(firstOutput);
             }
         }
     </script>
