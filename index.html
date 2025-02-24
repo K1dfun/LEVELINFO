@@ -44,13 +44,29 @@
             color: white;
         }
         button {
-            width: auto;
             padding: 10px 20px;
             border-radius: 10px;
             border: 1px solid gray;
-            background: rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.3);
             color: white;
             cursor: pointer;
+            transition: background 0.2s, filter 0.2s;
+        }
+        button:hover {
+            background: rgba(255, 255, 255, 0.5);
+        }
+        .button-active {
+            filter: brightness(1.5);
+        }
+        .button-true {
+            background: rgba(0, 200, 0, 0.7);
+            border: 1px solid lime;
+            cursor: default;
+        }
+        .button-false {
+            background: rgba(200, 0, 0, 0.7);
+            border: 1px solid red;
+            cursor: default;
         }
         .output-container {
             display: flex;
@@ -76,26 +92,21 @@
             justify-content: center;
             gap: 10px;
         }
-        .data-button {
-            padding: 8px 15px;
-            border-radius: 10px;
-            border: 1px solid gray;
-            background: rgba(255, 255, 255, 0.2);
-            color: white;
-            cursor: pointer;
-        }
         .output {
             border: 1px solid gray;
             background: rgba(255, 255, 255, 0.1);
             min-height: 30px;
-            max-height: 50px;
             width: 100%;
-            overflow-y: hidden;
-            word-break: break-word;
+            overflow-y: auto;
+            word-wrap: break-word;
             padding: 5px;
             text-align: center;
             display: none;
             border-radius: 10px;
+            max-height: 120px;
+        }
+        .expand {
+            max-height: 300px !important;
         }
     </style>
 </head>
@@ -109,23 +120,26 @@
 
     <script>
         let outputHistory = [];
+        const placeholderImage = "data:image/jpeg;base64,{{BASE64_IMAGE}}"; // Custom placeholder
+
         function fetchLevelData() {
-            const input = document.getElementById('urlInput').value;
+            const input = document.getElementById('urlInput').value.trim();
             const match = input.match(/\?level=([\w]+):(\d+)/);
+            const outputContainer = document.getElementById('outputContainer');
+
             if (!match) {
-                document.getElementById('outputContainer').innerText = "Invalid URL format";
+                outputContainer.innerText = "Invalid URL format";
                 return;
             }
+
             const levelId = `${match[1]}/${match[2]}`;
             const apiUrl = `https://api.slin.dev/grab/v1/details/${levelId}`;
-            
+
             fetch(apiUrl)
                 .then(response => response.json())
-                .then(data => {
-                    displayData(data, levelId);
-                })
+                .then(data => displayData(data, levelId))
                 .catch(error => {
-                    document.getElementById('outputContainer').innerText = "Error fetching data";
+                    outputContainer.innerText = "Error fetching data";
                     console.error(error);
                 });
         }
@@ -133,43 +147,61 @@
         function displayData(data, levelId) {
             const outputContainer = document.getElementById('outputContainer');
             outputContainer.innerHTML = '';
-            
+
+            // Image Handling
             const imageBox = document.createElement('div');
             imageBox.className = 'image-box';
-            
+
             const img = document.createElement('img');
             img.src = `https://grab-images.slin.dev/level_${levelId.replace('/', '_')}_1_thumb.png`;
-            img.onerror = function() { this.style.display = 'none'; };
+            img.onerror = function () {
+                this.src = placeholderImage; // Use provided placeholder
+            };
+
             imageBox.appendChild(img);
             outputContainer.appendChild(imageBox);
-            
+
             const buttonContainer = document.createElement('div');
             buttonContainer.className = 'button-container';
             outputContainer.appendChild(buttonContainer);
-            
+
             Object.entries(data).forEach(([key, value]) => {
                 const button = document.createElement('button');
-                button.className = 'data-button';
                 button.innerText = key;
-                button.onclick = () => toggleOutput(key, value);
+
+                if (typeof value === 'boolean') {
+                    button.className = value ? 'button-true' : 'button-false';
+                } else {
+                    button.className = 'data-button';
+                    button.onclick = () => toggleOutput(key, value);
+                }
+
                 buttonContainer.appendChild(button);
-                
-                const outputDiv = document.createElement('div');
-                outputDiv.className = 'output';
-                outputDiv.id = `output-${key}`;
-                outputDiv.innerHTML = `<strong>${key}</strong><br>${JSON.stringify(value)}`;
-                outputContainer.appendChild(outputDiv);
+
+                if (typeof value !== 'boolean') {
+                    const outputDiv = document.createElement('div');
+                    outputDiv.className = 'output';
+                    outputDiv.id = `output-${key}`;
+                    outputDiv.innerHTML = `<strong>${key}</strong><br>${JSON.stringify(value, null, 2)}`;
+                    outputDiv.onclick = () => outputDiv.classList.toggle('expand');
+                    outputContainer.appendChild(outputDiv);
+                }
             });
         }
 
         function toggleOutput(key, value) {
             const outputDiv = document.getElementById(`output-${key}`);
             outputDiv.style.display = 'block';
-            
+
             outputHistory.push(outputDiv);
             if (outputHistory.length > 6) {
                 const firstOutput = outputHistory.shift();
                 firstOutput.style.display = 'none';
+            }
+
+            const button = document.querySelector(`button[data-key="${key}"]`);
+            if (button) {
+                button.classList.add('button-active');
             }
         }
     </script>
