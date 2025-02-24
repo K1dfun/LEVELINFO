@@ -1,1 +1,20 @@
-1.1.1
+1.0.1
+- Initial release
+
+1.0.2
+- Added Level Images
+- Boolean buttons are green (true) and red (false)
+-	Boolean buttons are unclickable
+-	Buttons brighten when clicked
+-	Auto-switches to placeholder if the image fails to load
+-	Improved button animations and error handling
+
+1.0.3
+- Added a placeholder image when there is no image available 
+- Added support for a version.txt file
+- Added a version number and changed the main text
+- Added a version history 
+
+
+
+
