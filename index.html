@@ -120,7 +120,6 @@
 
     <script>
         let outputHistory = [];
-        const placeholderImage = "data:image/jpeg;base64,{{BASE64_IMAGE}}"; // Custom placeholder
 
         function fetchLevelData() {
             const input = document.getElementById('urlInput').value.trim();
@@ -155,7 +154,7 @@
             const img = document.createElement('img');
             img.src = `https://grab-images.slin.dev/level_${levelId.replace('/', '_')}_1_thumb.png`;
             img.onerror = function () {
-                this.src = placeholderImage; // Use provided placeholder
+                this.src = "Default_Image.png"; // Uses actual PNG file
             };
 
             imageBox.appendChild(img);
