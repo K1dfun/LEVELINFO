@@ -32,7 +32,59 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 15px;
+            gap: 10px;
+        }
+        h2 {
+            margin: 0;
+        }
+        .version-text {
+            color: gray;
+            font-size: 14px;
+            margin-top: 2px;
+            text-decoration: underline;
+            cursor: pointer;
+        }
+        .version-popup {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 300px;
+            max-height: 300px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid gray;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+            overflow-y: auto;
+            padding: 15px;
+            display: none;
+            text-align: left;
+            display: flex;
+            flex-direction: column-reverse;
+        }
+        .version-popup h3 {
+            margin: 0;
+            font-size: 16px;
+            border-bottom: 1px solid gray;
+            padding-bottom: 5px;
+        }
+        .version-popup ul {
+            padding: 0;
+            margin: 10px 0;
+            list-style-type: disc;
+            padding-left: 15px;
+        }
+        .version-popup .close-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid gray;
+            color: white;
+            cursor: pointer;
+            border-radius: 5px;
+            padding: 5px 10px;
+            float: right;
+            margin-top: -5px;
+        }
+        .version-popup .close-btn:hover {
+            background: rgba(255, 255, 255, 0.4);
         }
         input {
             width: 100%;
@@ -55,8 +107,8 @@
         button:hover {
             background: rgba(255, 255, 255, 0.5);
         }
-        .button-active {
-            filter: brightness(1.5);
+        .button-container button {
+            border: 1px solid gray;
         }
         .button-true {
             background: rgba(0, 200, 0, 0.7);
@@ -67,30 +119,6 @@
             background: rgba(200, 0, 0, 0.7);
             border: 1px solid red;
             cursor: default;
-        }
-        .output-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 15px;
-            width: 100%;
-        }
-        .image-box {
-            border: 1px solid gray;
-            border-radius: 10px;
-            padding: 10px;
-            background: rgba(255, 255, 255, 0.1);
-            max-width: 300px;
-        }
-        .image-box img {
-            width: 100%;
-            border-radius: 10px;
-        }
-        .button-container {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 10px;
         }
         .output {
             border: 1px solid gray;
@@ -112,38 +140,60 @@
 </head>
 <body>
     <div class="container">
-        <h2 id="title">Advanced Level Information - Loading...</h2>
+        <h2 id="title">Advanced Level Information</h2>
+        <p id="version" class="version-text" onclick="toggleVersionPopup()">Loading version...</p>
         <input type="text" id="urlInput" placeholder="Enter level URL...">
         <button onclick="fetchLevelData()">Get Level Data</button>
         <div class="output-container" id="outputContainer"></div>
     </div>
 
+    <div class="version-popup" id="versionPopup">
+        <button class="close-btn" onclick="toggleVersionPopup()">X</button>
+        <h3>Version History</h3>
+        <div id="versionList"></div>
+    </div>
+
     <script>
         let outputHistory = [];
 
-        // Load version number from version.txt
         function loadVersion() {
             fetch("version.txt")
                 .then(response => response.text())
-                .then(version => {
-                    document.getElementById("title").innerText = `Advanced Level Information - Version ${version.trim()}`;
-                    document.title = `Advanced Level Information - Version ${version.trim()}`;
+                .then(data => {
+                    let lines = data.trim().split("\n");
+                    let currentVersion = lines[0];
+                    document.getElementById("version").innerText = `Version ${currentVersion}`;
+                    document.title = `Advanced Level Information - Version ${currentVersion}`;
+
+                    let versionHTML = "";
+                    let versionCount = 0;
+                    for (let i = 0; i < lines.length; i++) {
+                        if (lines[i].match(/^\d+\.\d+\.\d+$/)) { 
+                            if (versionCount >= 5) break; 
+                            versionHTML = `<h4>${lines[i]}</h4><ul>` + versionHTML;
+                            versionCount++;
+                        } else {
+                            versionHTML = `<li>${lines[i]}</li>` + versionHTML;
+                        }
+                    }
+
+                    document.getElementById("versionList").innerHTML = versionHTML + "</ul>";
                 })
                 .catch(error => {
                     console.error("Error loading version:", error);
-                    document.getElementById("title").innerText = "Advanced Level Information - Version Unknown";
+                    document.getElementById("version").innerText = "Version Unknown";
                 });
+        }
+
+        function toggleVersionPopup() {
+            const popup = document.getElementById("versionPopup");
+            popup.style.display = popup.style.display === "block" ? "none" : "block";
         }
 
         function fetchLevelData() {
             const input = document.getElementById('urlInput').value.trim();
             const match = input.match(/\?level=([\w]+):(\d+)/);
-            const outputContainer = document.getElementById('outputContainer');
-
-            if (!match) {
-                outputContainer.innerText = "Invalid URL format";
-                return;
-            }
+            if (!match) return alert("Invalid URL format");
 
             const levelId = `${match[1]}/${match[2]}`;
             const apiUrl = `https://api.slin.dev/grab/v1/details/${levelId}`;
@@ -151,74 +201,32 @@
             fetch(apiUrl)
                 .then(response => response.json())
                 .then(data => displayData(data, levelId))
-                .catch(error => {
-                    outputContainer.innerText = "Error fetching data";
-                    console.error(error);
-                });
+                .catch(error => console.error("Error fetching data", error));
         }
 
         function displayData(data, levelId) {
             const outputContainer = document.getElementById('outputContainer');
             outputContainer.innerHTML = '';
 
-            // Image Handling
-            const imageBox = document.createElement('div');
-            imageBox.className = 'image-box';
-
-            const img = document.createElement('img');
-            img.src = `https://grab-images.slin.dev/level_${levelId.replace('/', '_')}_1_thumb.png`;
-            img.onerror = function () {
-                this.src = "Default_Image.png"; // Uses actual PNG file
-            };
-
-            imageBox.appendChild(img);
-            outputContainer.appendChild(imageBox);
-
-            const buttonContainer = document.createElement('div');
-            buttonContainer.className = 'button-container';
-            outputContainer.appendChild(buttonContainer);
-
             Object.entries(data).forEach(([key, value]) => {
                 const button = document.createElement('button');
                 button.innerText = key;
-
-                if (typeof value === 'boolean') {
-                    button.className = value ? 'button-true' : 'button-false';
-                } else {
-                    button.className = 'data-button';
-                    button.onclick = () => toggleOutput(key, value);
-                }
-
-                buttonContainer.appendChild(button);
-
-                if (typeof value !== 'boolean') {
-                    const outputDiv = document.createElement('div');
-                    outputDiv.className = 'output';
-                    outputDiv.id = `output-${key}`;
-                    outputDiv.innerHTML = `<strong>${key}</strong><br>${JSON.stringify(value, null, 2)}`;
-                    outputDiv.onclick = () => outputDiv.classList.toggle('expand');
-                    outputContainer.appendChild(outputDiv);
-                }
+                button.onclick = () => toggleOutput(key, value);
+                outputContainer.appendChild(button);
             });
         }
 
         function toggleOutput(key, value) {
-            const outputDiv = document.getElementById(`output-${key}`);
+            const outputDiv = document.createElement('div');
+            outputDiv.className = 'output';
+            outputDiv.innerHTML = `<strong>${key}</strong><br>${JSON.stringify(value, null, 2)}`;
+            document.getElementById("outputContainer").appendChild(outputDiv);
             outputDiv.style.display = 'block';
 
             outputHistory.push(outputDiv);
-            if (outputHistory.length > 6) {
-                const firstOutput = outputHistory.shift();
-                firstOutput.style.display = 'none';
-            }
-
-            const button = document.querySelector(`button[data-key="${key}"]`);
-            if (button) {
-                button.classList.add('button-active');
-            }
+            if (outputHistory.length > 6) outputHistory.shift().remove();
         }
 
-        // Load version when page loads
         loadVersion();
     </script>
 </body>
