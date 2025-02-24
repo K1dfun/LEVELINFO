@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Level API Viewer</title>
+    <title>Advanced Level Information - Loading...</title>
     <style>
         * {
             box-sizing: border-box;
@@ -112,7 +112,7 @@
 </head>
 <body>
     <div class="container">
-        <h2>Level API Viewer</h2>
+        <h2 id="title">Advanced Level Information - Loading...</h2>
         <input type="text" id="urlInput" placeholder="Enter level URL...">
         <button onclick="fetchLevelData()">Get Level Data</button>
         <div class="output-container" id="outputContainer"></div>
@@ -120,6 +120,20 @@
 
     <script>
         let outputHistory = [];
+
+        // Load version number from version.txt
+        function loadVersion() {
+            fetch("version.txt")
+                .then(response => response.text())
+                .then(version => {
+                    document.getElementById("title").innerText = `Advanced Level Information - Version ${version.trim()}`;
+                    document.title = `Advanced Level Information - Version ${version.trim()}`;
+                })
+                .catch(error => {
+                    console.error("Error loading version:", error);
+                    document.getElementById("title").innerText = "Advanced Level Information - Version Unknown";
+                });
+        }
 
         function fetchLevelData() {
             const input = document.getElementById('urlInput').value.trim();
@@ -203,6 +217,9 @@
                 button.classList.add('button-active');
             }
         }
+
+        // Load version when page loads
+        loadVersion();
     </script>
 </body>
 </html>
