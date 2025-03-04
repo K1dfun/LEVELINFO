@@ -22,6 +22,12 @@
             flex-direction: column;
             gap: 20px;
             width: 30%;
+            flex-shrink: 0;
+        }
+        .right-container {
+            flex-grow: 1;
+            margin-left: 20px;
+            overflow-y: auto;
         }
         .box {
             background: rgba(255, 255, 255, 0.1);
@@ -61,14 +67,9 @@
             background: rgba(255, 255, 255, 0.1);
             cursor: pointer;
         }
-        .data-button:hover {
-            filter: brightness(1.5);
-            transform: scale(1.05);
-        }
-        .right-container {
-            width: 70%;
-            margin-left: 20px;
-            overflow-y: auto;
+        .data-button:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
         }
         .output-box {
             background: rgba(255, 255, 255, 0.1);
@@ -77,13 +78,45 @@
             margin-bottom: 10px;
             border-radius: 10px;
             box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+            position: relative;
+        }
+        .output-buttons {
+            display: flex;
+            gap: 5px;
+            margin-top: 5px;
+        }
+        .remove-btn, .copy-btn {
+            padding: 5px 10px;
+            border-radius: 5px;
+            border: none;
+            cursor: pointer;
+        }
+        .remove-btn {
+            background: red;
+            color: white;
+        }
+        .copy-btn {
+            background: green;
+            color: white;
+        }
+        .master-controls {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        #level-image {
+            width: 100%;
+            border-radius: 10px;
+            height: auto;
+            object-fit: contain;
         }
     </style>
 </head>
 <body>
     <div class="left-container">
         <div class="box" id="level-info-box">
-            <img id="level-image" src="Default_Image.png" style="width: 100%; border-radius: 10px;">
+            <img id="level-image" src="Default_Image.png">
             <input type="text" id="urlInput" placeholder="Enter level URL...">
             <button onclick="fetchLevelData()">Get Level Data</button>
         </div>
@@ -91,7 +124,13 @@
             <div class="button-container" id="button-container"></div>
         </div>
     </div>
-    <div class="right-container" id="output-container"></div>
+    <div class="right-container">
+        <div class="master-controls">
+            <button class="copy-btn" onclick="copyAllOutput()">Copy All</button>
+            <button class="remove-btn" onclick="clearAllOutput()">Clear All</button>
+        </div>
+        <div id="output-container"></div>
+    </div>
     
     <script>
         let outputHistory = [];
@@ -100,10 +139,9 @@
             const input = document.getElementById('urlInput').value.trim();
             const match = input.match(/\?level=([\w]+):(\d+)/);
             const buttonBox = document.getElementById('buttons-box');
-            const outputContainer = document.getElementById('output-container');
-            
+
             if (!match) {
-                outputContainer.innerHTML = "<div class='output-box'>Invalid URL format</div>";
+                addOutputBox("Error", "Invalid URL format");
                 return;
             }
 
@@ -115,62 +153,35 @@
                 .then(response => response.json())
                 .then(data => {
                     displayLevelImage(levelId);
-                    displayInitialData(data);
                     displayButtons(data);
                     buttonBox.style.display = 'block';
-                    
-                    // Fetch additional statistics
-                    fetch(statsUrl)
-                        .then(response => response.json())
-                        .then(statsData => {
-                            displayStatsButtons(statsData);
-                        })
-                        .catch(error => {
-                            console.error("Error fetching statistics:", error);
-                        });
                 })
-                .catch(error => {
-                    outputContainer.innerHTML = `<div class='output-box' style='color:red;'>Error: ${error.message}</div>`;
-                });
+                .catch(error => addOutputBox("Error", `Failed to fetch level details: ${error.message}`));
+
+            fetch(statsUrl)
+                .then(response => response.json())
+                .then(statsData => displayButtons(statsData))
+                .catch(error => addOutputBox("Error", `Failed to fetch statistics: ${error.message}`));
         }
 
         function displayLevelImage(levelId) {
-            const img = document.getElementById('level-image');
-            img.src = `https://grab-images.slin.dev/level_${levelId.replace('/', '_')}_1_thumb.png`;
-            img.onerror = function () {
-                this.src = "Default_Image.png";
-            };
-        }
-
-        function displayInitialData(data) {
-            addOutputBox("Title", data.title);
-            addOutputBox("Creators", data.creators);
-            addOutputBox("Complexity", data.complexity);
+            document.getElementById('level-image').src = `https://grab-images.slin.dev/level_${levelId.replace('/', '_')}_1_thumb.png`;
         }
 
         function displayButtons(data) {
             const buttonContainer = document.getElementById('button-container');
-            buttonContainer.innerHTML = '';
 
             Object.entries(data).forEach(([key, value]) => {
-                if (key === "title" || key === "creators" || key === "complexity") return;
-                
                 const button = document.createElement('button');
                 button.innerText = key;
                 button.className = 'data-button';
-                button.onclick = () => addOutputBox(key, value);
-                buttonContainer.appendChild(button);
-            });
-        }
 
-        function displayStatsButtons(statsData) {
-            const buttonContainer = document.getElementById('button-container');
+                if (value === 0 || value === null || value === "" || (Array.isArray(value) && value.length === 0) || (typeof value === "object" && Object.keys(value).length === 0)) {
+                    button.disabled = true;
+                } else {
+                    button.onclick = () => addOutputBox(key, value);
+                }
 
-            Object.entries(statsData).forEach(([key, value]) => {
-                const button = document.createElement('button');
-                button.innerText = key;
-                button.className = 'data-button';
-                button.onclick = () => addOutputBox(key, value);
                 buttonContainer.appendChild(button);
             });
         }
@@ -180,14 +191,43 @@
             const outputBox = document.createElement('div');
             outputBox.className = 'output-box';
             outputBox.innerHTML = `<strong>${key}</strong><pre>${JSON.stringify(value, null, 2)}</pre>`;
+
+            const buttons = document.createElement('div');
+            buttons.className = 'output-buttons';
+
+            const removeBtn = document.createElement('button');
+            removeBtn.innerText = "Remove";
+            removeBtn.className = "remove-btn";
+            removeBtn.onclick = () => {
+                outputContainer.removeChild(outputBox);
+                outputHistory = outputHistory.filter(item => item !== outputBox);
+            };
+
+            const copyBtn = document.createElement('button');
+            copyBtn.innerText = "Copy";
+            copyBtn.className = "copy-btn";
+            copyBtn.onclick = () => navigator.clipboard.writeText(JSON.stringify(value, null, 2));
+
+            buttons.appendChild(copyBtn);
+            buttons.appendChild(removeBtn);
+            outputBox.appendChild(buttons);
+
             outputContainer.appendChild(outputBox);
-            
             outputHistory.push(outputBox);
-            
-            if (outputHistory.length > 6) {
+
+            if (outputHistory.length > 10) {
                 const firstOutput = outputHistory.shift();
                 outputContainer.removeChild(firstOutput);
             }
+        }
+
+        function clearAllOutput() {
+            document.getElementById('output-container').innerHTML = "";
+            outputHistory = [];
+        }
+
+        function copyAllOutput() {
+            navigator.clipboard.writeText(document.getElementById('output-container').innerText);
         }
     </script>
 </body>
