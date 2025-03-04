@@ -109,7 +109,8 @@
 
             const levelId = `${match[1]}/${match[2]}`;
             const apiUrl = `https://api.slin.dev/grab/v1/details/${levelId}`;
-            
+            const statsUrl = `https://api.slin.dev/grab/v1/statistics/${levelId}`;
+
             fetch(apiUrl)
                 .then(response => response.json())
                 .then(data => {
@@ -117,6 +118,16 @@
                     displayInitialData(data);
                     displayButtons(data);
                     buttonBox.style.display = 'block';
+                    
+                    // Fetch additional statistics
+                    fetch(statsUrl)
+                        .then(response => response.json())
+                        .then(statsData => {
+                            displayStatsButtons(statsData);
+                        })
+                        .catch(error => {
+                            console.error("Error fetching statistics:", error);
+                        });
                 })
                 .catch(error => {
                     outputContainer.innerHTML = `<div class='output-box' style='color:red;'>Error: ${error.message}</div>`;
@@ -144,6 +155,18 @@
             Object.entries(data).forEach(([key, value]) => {
                 if (key === "title" || key === "creators" || key === "complexity") return;
                 
+                const button = document.createElement('button');
+                button.innerText = key;
+                button.className = 'data-button';
+                button.onclick = () => addOutputBox(key, value);
+                buttonContainer.appendChild(button);
+            });
+        }
+
+        function displayStatsButtons(statsData) {
+            const buttonContainer = document.getElementById('button-container');
+
+            Object.entries(statsData).forEach(([key, value]) => {
                 const button = document.createElement('button');
                 button.innerText = key;
                 button.className = 'data-button';
